@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MindFlash — Smart Flashcards</title>
+  <meta name="description" content="A vanilla JS flashcards app with spaced repetition, localStorage, and analytics." />
+  <link rel="stylesheet" href="styles/styles.css" />
+</head>
+
+<body>
+  <header class="app-header">
+    <h1 class="brand" tabindex="0">MindFlash</h1>
+    <nav class="topnav" aria-label="Primary">
+      <button class="nav-btn" data-view="decks" aria-current="page">Decks</button>
+      <button class="nav-btn" data-view="study">Study</button>
+      <button class="nav-btn" data-view="analytics">Analytics</button>
+      <button class="nav-btn" data-view="settings">Settings</button>
+    </nav>
+    <div class="header-actions">
+      <button id="themeToggle" class="icon-btn" aria-label="Toggle theme" title="Toggle theme (T)">🌓</button>
+      <button id="exportBtn" class="btn" title="Export all data">Export</button>
+      <label class="file-label btn" title="Import data JSON">
+        Import
+        <input id="importInput" type="file" accept="application/json" />
+      </label>
+    </div>
+  </header>
+
+  <main id="appMain">
+    <!-- Decks View -->
+    <section id="view-decks" class="view active" aria-labelledby="decks-heading">
+      <div class="view-header">
+        <h2 id="decks-heading">Your Decks</h2>
+        <div class="actions">
+          <button id="addDeckBtn" class="btn primary">New Deck</button>
+          <input id="deckSearch" type="search" placeholder="Search decks..." aria-label="Search decks" />
+        </div>
+      </div>
+
+      <div id="deckList" class="deck-grid" role="list" aria-live="polite"></div>
+      <p id="noDecksMsg" class="muted" hidden>No decks yet. Create your first deck to get started!</p>
+    </section>
+
+    <!-- Study View -->
+    <section id="view-study" class="view" aria-labelledby="study-heading">
+      <div class="view-header">
+        <h2 id="study-heading">Study</h2>
+        <div class="actions">
+          <select id="studyDeckSelector" aria-label="Select deck to study">
+            <!-- populated by JS -->
+          </select>
+          <button id="startStudyBtn" class="btn primary">Start Session</button>
+        </div>
+      </div>
+
+      <div id="studyPanel" class="study-panel" hidden>
+        <div class="study-meta">
+          <span id="studyDeckName" class="chip"></span>
+          <span id="dueCount" class="chip">Due: 0</span>
+          <span id="sessionCount" class="chip">Session: 0</span>
+        </div>
+
+        <div class="card-area" aria-live="polite">
+          <div id="cardFront" class="card-face" tabindex="0">Front</div>
+          <div id="cardBack" class="card-face back" tabindex="0" hidden>Back</div>
+        </div>
+
+        <div class="study-actions">
+          <button id="showAnswerBtn" class="btn">Show Answer (Space)</button>
+          <div class="grade-actions" hidden>
+            <button class="btn danger" data-grade="again" title="Shortcut: 1">Again</button>
+            <button class="btn" data-grade="hard" title="Shortcut: 2">Hard</button>
+            <button class="btn" data-grade="good" title="Shortcut: 3">Good</button>
+            <button class="btn success" data-grade="easy" title="Shortcut: 4">Easy</button>
+          </div>
+        </div>
+
+        <p class="hint muted">Shortcuts: Space to flip, 1/2/3/4 to grade, N for next.</p>
+      </div>
+
+      <div id="noDueMsg" class="empty" hidden>No cards due right now. Great job! 🎉</div>
+    </section>
+
+    <!-- Analytics View -->
+    <section id="view-analytics" class="view" aria-labelledby="analytics-heading">
+      <div class="view-header">
+        <h2 id="analytics-heading">Analytics</h2>
+        <div class="actions">
+          <select id="analyticsDeckSelector" aria-label="Select deck for analytics">
+            <!-- populated by JS -->
+          </select>
+        </div>
+      </div>
+
+      <div class="analytics-grid">
+        <div class="stat">
+          <h3>Total Cards</h3>
+          <p id="statTotal">0</p>
+        </div>
+        <div class="stat">
+          <h3>Due Today</h3>
+          <p id="statDueToday">0</p>
+        </div>
+        <div class="stat">
+          <h3>Streak (days)</h3>
+          <p id="statStreak">0</p>
+        </div>
+        <div class="stat">
+          <h3>Mastered</h3>
+          <p id="statMastered">0</p>
+        </div>
+      </div>
+
+      <div class="charts">
+        <canvas id="chartReviews" width="900" height="260" aria-label="Reviews last 14 days" role="img"></canvas>
+        <canvas id="chartBoxes" width="900" height="200" aria-label="Cards by Leitner box" role="img"></canvas>
+      </div>
+    </section>
+
+    <!-- Settings View -->
+    <section id="view-settings" class="view" aria-labelledby="settings-heading">
+      <div class="view-header">
+        <h2 id="settings-heading">Settings</h2>
+      </div>
+
+      <div class="settings">
+        <div class="setting-item">
+          <label for="themeSelect">Theme</label>
+          <select id="themeSelect">
+            <option value="system">System</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </div>
+
+        <div class="setting-item">
+          <button id="resetAllBtn" class="btn danger">Reset All Data</button>
+        </div>
+      </div>
+
+      <div class="kbd-help">
+        <h3>Keyboard Shortcuts</h3>
+        <ul>
+          <li>Switch views: Alt+1 Decks, Alt+2 Study, Alt+3 Analytics, Alt+4 Settings</li>
+          <li>Study session: Space flip, 1 Again, 2 Hard, 3 Good, 4 Easy, N Next</li>
+          <li>Toggle theme: T</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modals -->
+  <dialog id="deckModal" aria-labelledby="deckModalTitle">
+    <form method="dialog" id="deckForm">
+      <h3 id="deckModalTitle">New Deck</h3>
+      <label>
+        Deck Name
+        <input id="deckNameInput" type="text" required minlength="1" maxlength="64" />
+      </label>
+      <label>
+        Description (optional)
+        <textarea id="deckDescInput" rows="3" maxlength="280"></textarea>
+      </label>
+      <menu class="dialog-actions">
+        <button value="cancel" class="btn">Cancel</button>
+        <button id="saveDeckBtn" value="default" class="btn primary">Save</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <dialog id="cardModal" aria-labelledby="cardModalTitle">
+    <form method="dialog" id="cardForm">
+      <h3 id="cardModalTitle">New Card</h3>
+      <label>
+        Front
+        <textarea id="cardFrontInput" rows="3" required maxlength="500"></textarea>
+      </label>
+      <label>
+        Back
+        <textarea id="cardBackInput" rows="5" required maxlength="1500"></textarea>
+      </label>
+      <menu class="dialog-actions">
+        <button value="cancel" class="btn">Cancel</button>
+        <button id="saveCardBtn" value="default" class="btn primary">Save</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <footer class="app-footer">
+    <p class="muted">Built with Vanilla JS, Standard CSS, and Semantic HTML. Data stored locally in your browser.</p>
+  </footer>
+
+  <script src="javascript/script.js" defer></script>
+</body>
+</html>
