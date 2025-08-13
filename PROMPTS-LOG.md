@@ -1,8 +1,6 @@
-# PROMPTS-LOG.md
+### PROMPTS-LOG.md
 
 A running log of the prompts used to build MindFlash and the AI’s responses. The goal was to keep the app simple, use only vanilla web technologies, and provide clear, actionable instructions.
-
----
 
 ## Prompt 1 — Minimal Data Model and LocalStorage Persistence
 
@@ -41,10 +39,10 @@ const defaultStore = {
     } */
   ]
 };
-
+```
 
 Persistence helpers:
-
+```js
 function loadStore() {
   try {
     const raw = localStorage.getItem(STORE_KEY);
@@ -84,31 +82,27 @@ function importStore(json) {
   saveStore(parsed);
   return parsed;
 }
-
+```
 
 Outcome:
+- Clear, compact schema.
+- Safe load/save/reset/export/import functions.
+- Ready to wire into UI actions.
 
-Clear, compact schema.
-Safe load/save/reset/export/import functions.
-Ready to wire into UI actions.
+---
 
+## Prompt 2 — Leitner Scheduling with Small SM-2 Style Ease Tweaks
 
-______
+- Date: 2025-08-13
+- Objective: Implement a simple scheduler that uses Leitner buckets (1–5) and adjusts ease and interval lightly based on Again/Hard/Good/Easy.
 
-
-
-##Prompt 2 — Leitner Scheduling with Small SM-2 Style Ease Tweaks
-
-Date: 2025-08-13
-Objective: Implement a simple scheduler that uses Leitner buckets (1–5) and adjusts ease and interval lightly based on Again/Hard/Good/Easy.
-
-Prompt
+### Prompt
 Implement a function schedule(card, grade) where grade is 'again' | 'hard' | 'good' | 'easy'. Use Leitner buckets 1–5 and small SM-2-like ease adjustments. Keep it simple and deterministic. Output updated {bucket, ease, interval, due}. Assume “today” is start of current day.
 
-AI Response
-
+### AI Response
 Use conservative ease deltas and cap values to avoid runaway intervals. Interval scales roughly as bucket × ease, with small penalties/bonuses per grade.
 
+```js
 // Utility: start of today in ms
 function startOfToday() {
   const d = new Date();
@@ -135,12 +129,11 @@ function schedule(card, grade) {
 
   // Bucket transitions
   if (grade === 'again') bucket = 1;
-  else if (grade === 'hard') bucket = Math.max(1, bucket); // stay or fall later if desired
+  else if (grade === 'hard') bucket = Math.max(1, bucket);
   else if (grade === 'good') bucket = clamp(bucket + 1, 1, 5);
   else if (grade === 'easy') bucket = clamp(bucket + 2, 1, 5);
 
   // Interval calculation (days)
-  // Base by bucket; scale by ease; apply small grade factor
   const baseByBucket = [0, 1, 2, 4, 7, 14]; // index 0 unused
   const gradeFactor = { again: 0, hard: 0.6, good: 1.0, easy: 1.3 }[grade];
 
@@ -155,9 +148,7 @@ function schedule(card, grade) {
   }
 
   // Minimums and caps
-  if (grade === 'hard') nextInterval = Math.max(1, nextInterval);
-  if (grade === 'good') nextInterval = Math.max(1, nextInterval);
-  if (grade === 'easy') nextInterval = Math.max(1, nextInterval);
+  if (grade !== 'again') nextInterval = Math.max(1, nextInterval);
   nextInterval = Math.min(nextInterval, 365); // simple cap
 
   const due = now + nextInterval * 24 * 60 * 60 * 1000;
@@ -169,32 +160,27 @@ function schedule(card, grade) {
     due
   };
 }
-
+```
 
 Outcome:
+- Simple, predictable scheduling.
+- Small, bounded ease changes.
+- Works with daily review flow.
 
-Simple, predictable scheduling.
-Small, bounded ease changes.
-Works with daily review flow.
+---
 
+## Prompt 3 — Keyboard Shortcuts and Card Flow
 
+- Date: 2025-08-13
+- Objective: Add keyboard shortcuts for study flow: Space to flip, 1/2/3/4 to grade, N as “next/Good”, T to toggle theme, and Alt+1..4 to switch tabs.
 
------
-
-
-
-##Prompt 3 — Keyboard Shortcuts and Card Flow
-
-Date: 2025-08-13
-Objective: Add keyboard shortcuts for study flow: Space to flip, 1/2/3/4 to grade, N as “next/Good”, T to toggle theme, and Alt+1..4 to switch tabs.
-
-Prompt
+### Prompt
 Provide a minimal keyboard handler for a study session. Actions needed: Space to flip answer; 1=again, 2=hard, 3=good, 4=easy; N acts like “good”; T toggles theme; Alt+1 Decks, Alt+2 Study, Alt+3 Analytics, Alt+4 Settings. Include small no-op guards for input fields and basic example callbacks.
 
-AI Response
-
+### AI Response
 Attach a single keydown listener on window, ignore events from editable fields, and map keys to callbacks. Keep it tiny and readable.
 
+```js
 // Example placeholders; wire these to your app logic
 const ui = {
   flipCard: () => console.log('flip'),
@@ -253,10 +239,10 @@ function handleKeydown(e) {
   }
 }
 
-window.addEventListener('keydown', handleKeydown); 
+window.addEventListener('keydown', handleKeydown);
+```
 
 Outcome:
-
-Single, centralized shortcut handler.
-Prevents interference with text inputs.
-Matches the app’s shortcut spec.
+- Single, centralized shortcut handler.
+- Prevents interference with text inputs.
+- Matches the app’s shortcut spec.
