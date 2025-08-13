@@ -62,4 +62,4 @@ No backend is required. If you add a backend later, keep package.json and .gitig
 
 #### License
 
-MIT (or adapt as required for your course submission).
+MIT 
